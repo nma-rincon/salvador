@@ -1,0 +1,94 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.feature_selection import SelectKBest, f_classif
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import accuracy_score
+
+# Cargar el dataset
+data_url = "https://github.com/ybifoundation/Dataset/raw/main/Fish.csv"
+fish = pd.read_csv(data_url)
+
+# Mostrar información del dataset
+print("Información del dataset:")
+print(fish.info())
+print("\nPrimeras filas del dataset:")
+print(fish.head())
+
+# 2. Procesamiento de datos
+# ======================================
+# Manejo de datos faltantes (si los hay)
+fish.dropna(inplace=True)
+
+# Convertir la variable categórica 'Category' a valores numéricos
+le = LabelEncoder()
+fish['Category'] = le.fit_transform(fish['Category'])
+
+# Separar variables predictoras y variable objetivo
+X = fish[['Height', 'Width', 'Length1', 'Length2', 'Length3']]
+y = fish['Category']
+
+# Normalizar las características
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Dividir en conjunto de entrenamiento y prueba
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, train_size=0.7, random_state=2529)
+
+# 3.1 Matriz de correlación 
+plt.figure(figsize=(8, 6))
+sns.heatmap(fish.drop(columns=["Species"]).corr(), annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5)
+plt.title("Matriz de Correlación")
+plt.show()
+
+# 3.2 Matriz de dispersión
+
+sns.pairplot(fish.drop(columns=['Category']))
+plt.show()
+
+# 3.3 Selección de características con SelectKBest
+
+selector = SelectKBest(score_func=f_classif, k=3)  # Seleccionamos las 3 mejores características
+X_new = selector.fit_transform(X_scaled, y)
+
+# Obtener los puntajes de importancia de cada característica
+feature_scores = pd.DataFrame({'Feature': X.columns, 'Score': selector.scores_})
+feature_scores = feature_scores.sort_values(by='Score', ascending=False)
+print("\nImportancia de características según SelectKBest:")
+print(feature_scores)
+
+
+selected_features = X.columns[selector.get_support()]
+print("\nLas características seleccionadas son:", ', '.join(selected_features))
+
+# 5. Entrenamiento del modelo Naive Bayes
+# ======================================
+model_nb = GaussianNB()
+
+# 5.1 Sin utilizar Cross Validation
+# ======================================
+model_nb.fit(X_train[:, selector.get_support()], y_train)
+y_pred = model_nb.predict(X_test[:, selector.get_support()])
+accuracy_no_cv = accuracy_score(y_test, y_pred)
+print("\nPrecisión sin Cross Validation:", accuracy_no_cv)
+
+# 5.2 Con Cross Validation
+# ======================================
+cv_scores = cross_val_score(model_nb, X_scaled[:, selector.get_support()], y, cv=5)
+accuracy_cv_mean = np.mean(cv_scores)
+print("\nPrecisión con Cross Validation (promedio):", accuracy_cv_mean)
+
+# 7. Técnica adicional para selección de características
+# ======================================
+# Utilización de la importancia de características con un modelo de Árbol de Decisión
+from sklearn.tree import DecisionTreeClassifier
+
+dt_model = DecisionTreeClassifier()
+dt_model.fit(X_scaled, y)
+feature_importance = pd.DataFrame({'Feature': X.columns, 'Importance': dt_model.feature_importances_})
+feature_importance = feature_importance.sort_values(by='Importance', ascending=False)
+print("\nImportancia de características según Árbol de Decisión:")
+print(feature_importance)
