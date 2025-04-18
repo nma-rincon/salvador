@@ -12,8 +12,6 @@ from tensorflow.keras.callbacks import ModelCheckpoint
 warnings.filterwarnings('ignore')
 tf.get_logger().setLevel('ERROR')
 
-print("📦 Dispositivos disponibles:")
-print(tf.config.list_physical_devices())
 
 # === CONFIGURACIÓN ===
 dataset_path = r'C:\Users\isard\Downloads\FOTOS\lung_colon_image_set\TODO'  # carpeta con todas las clases
@@ -51,7 +49,7 @@ val_gen = datagen.flow_from_directory(
 
 num_classes = train_gen.num_classes
 class_names = list(train_gen.class_indices.keys())
-print(f"\n📊 Clases detectadas ({num_classes}): {class_names}")
+print(f"\nClases detectadas ({num_classes}): {class_names}")
 
 # === CONSTRUCCIÓN DEL MODELO ===
 def build_model(model_fn, input_shape=(768, 768, 3), num_classes=6):
@@ -69,7 +67,7 @@ def build_model(model_fn, input_shape=(768, 768, 3), num_classes=6):
 
 # === ENTRENAMIENTO ===
 for model_name, model_fn in model_zoo.items():
-    print(f"\n🧠 Entrenando modelo: {model_name}")
+    print(f"\nEntrenando modelo: {model_name}")
 
     model = build_model(model_fn, input_shape=(img_size, img_size, 3), num_classes=num_classes)
     model.compile(optimizer=Adam(1e-4), loss='categorical_crossentropy', metrics=['accuracy'])
